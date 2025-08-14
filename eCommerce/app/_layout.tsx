@@ -12,6 +12,7 @@ import { usePathname } from 'expo-router';
 import { AuthProvider } from '@/auth/providers/AuthProvider';
 
 import { apiGet } from '@/services/api';
+import { DISABLE_BACKEND_GUARD } from '@/config/environment';
 
 import Button from '@/components/atoms/Button';
 
@@ -51,6 +52,12 @@ export default function RootLayout() {
 
   // Initial blocking health check for backend
   const checkBackend = async () => {
+    if (DISABLE_BACKEND_GUARD) { // INFO: Skip health gate in debug
+      setBackendReady(true);
+      setServiceOnline(true);
+      setCheckingBackend(false);
+      return;
+    }
     setCheckingBackend(true);
     setBackendError(null);
     try {
@@ -72,6 +79,7 @@ export default function RootLayout() {
 
   // Periodic non-blocking connectivity ping
   const pingBackend = async () => {
+    if (DISABLE_BACKEND_GUARD) return; // INFO: Skip periodic pings in debug
     setPinging(true);
     try {
       const res = await apiGet<string>('/health', undefined, { timeoutMs: 4000 });
@@ -107,7 +115,7 @@ export default function RootLayout() {
 
   // Background/interval pings once app is ready
   useEffect(() => {
-    if (!backendReady) return;
+    if (!backendReady || DISABLE_BACKEND_GUARD) return;
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         pingBackend();
@@ -124,7 +132,7 @@ export default function RootLayout() {
 
   // Ping on navigation for up-to-date status
   useEffect(() => {
-    if (!backendReady) return;
+    if (!backendReady || DISABLE_BACKEND_GUARD) return;
     pingBackend();
   }, [pathname, backendReady]);
 
@@ -132,7 +140,7 @@ export default function RootLayout() {
     return null;
   }
 
-  if (!backendReady) {
+  if (!backendReady && !DISABLE_BACKEND_GUARD) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
@@ -158,7 +166,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          {(!serviceOnline || showConnectedBanner) && (
+          {(!DISABLE_BACKEND_GUARD && (!serviceOnline || showConnectedBanner)) && (
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
               <SafeAreaView edges={['top']}>
                 <View style={{ backgroundColor: serviceOnline ? '#1b5e20' : '#b00020' }}>

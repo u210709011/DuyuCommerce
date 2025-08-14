@@ -1,6 +1,8 @@
 import { Product, Category } from '@/types/product';
 
 import { apiGet } from './api';
+import { USE_MOCKS } from '@/config/environment';
+import { getMockCategories } from './mockData';
 
 import { loadItem, saveItem } from '@/utils/storage';
 
@@ -73,12 +75,53 @@ export const getProductsPaged = async (
 
 // INFO: Convenience to load first page only
 export const getProducts = async (filters?: ProductFilters): Promise<Product[]> => {
+  if (USE_MOCKS) {
+    // minimal mock products from categories for offline demo
+    const cats = getMockCategories();
+    const demo: Product[] = cats.slice(0, 8).map((c, idx) => ({
+      id: String(idx + 1),
+      slug: `${c.slug}-demo-${idx + 1}`,
+      name: `${c.title} Item ${idx + 1}`,
+      description: 'Demo product (offline mode)'.trim(),
+      category: { id: c.id, name: c.title, slug: c.slug, imageUrl: c.imageUrls?.[0] },
+      price: 19.99 + idx,
+      originalPrice: 29.99 + idx,
+      discount: 20,
+      isFlashSale: idx % 3 === 0,
+      images: [c.imageUrls?.[0] || 'https://via.placeholder.com/400x500'],
+      variants: [],
+      options: [],
+      reviews: [],
+      rating: 4.2,
+    }));
+    return demo;
+  }
   const paged = await getProductsPaged(filters, 1, 100);
   return paged.items;
 };
 
 // INFO: Get full product detail and map to Product
 export const getProductById = async (id: string): Promise<Product | undefined> => {
+  if (USE_MOCKS) {
+    const cats = getMockCategories();
+    const c = cats[0];
+    return {
+      id,
+      slug: `demo-${id}`,
+      name: `Demo Product ${id}`,
+      description: 'Demo detail (offline mode)'.trim(),
+      category: { id: c.id, name: c.title, slug: c.slug, imageUrl: c.imageUrls?.[0] },
+      price: 49.99,
+      originalPrice: 59.99,
+      discount: 15,
+      isFlashSale: true,
+      images: c.imageUrls?.slice(0, 3) || [],
+      variants: [ { id: 'size', name: 'Size', values: ['S','M','L'] } ],
+      options: [ { id: 'material', name: 'Material', value: 'Cotton' } ],
+      reviews: [ { id: 'r1', author: 'Offline User', rating: 5, comment: 'Works offline!', date: '2024-01-01' } ],
+      rating: 4.6,
+    };
+  }
   type CategoryDto = { id: string; name: string; slug: string; imageUrl?: string | null; subtitle?: string | null };
   type ProductDetailDto = {
     id: string;
@@ -126,6 +169,10 @@ export const getProductsByCategory = async (categorySlug: string): Promise<Produ
 };
 
 export const getCategories = async (): Promise<Category[]> => {
+  if (USE_MOCKS) {
+    const cats = getMockCategories();
+    return cats.map(c => ({ id: c.id, name: c.title, slug: c.slug, imageUrl: c.imageUrls?.[0] }));
+  }
   type CategoryDto = { id: string; name: string; slug: string; imageUrl?: string | null };
   const CACHE_KEY = 'categoriesCacheV1';
 

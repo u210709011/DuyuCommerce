@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/config/environment';
+import { API_BASE_URL } from '@/config/api';
 
 // INFO: Build query string from params
 function buildQuery(params?: Record<string, string | number | boolean | undefined>): string {
