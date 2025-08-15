@@ -24,6 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
+    package: "com.duyubox.clothingStore",
   },
   web: {
     bundler: "metro",

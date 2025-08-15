@@ -5,7 +5,7 @@ using WebApi.Infrastructure.Persistence;
 
 namespace WebApi.Application.Services;
 
-public class ProductService(AppDbContext db) : IProductService
+public class ProductService(AppDbContext db, IFlashSaleService flashSale) : IProductService
 {
 
     public async Task<PagedResponse<ProductListItemDto>> GetProductsAsync(
@@ -56,10 +56,37 @@ public class ProductService(AppDbContext db) : IProductService
                 p.OriginalPrice,
                 p.DiscountPercent,
                 false,
-                p.Rating,
+                db.Reviews.Where(r => r.ProductId == p.Id).Select(r => (decimal?)r.Rating).Average() ?? 0m,
+                db.Reviews.Count(r => r.ProductId == p.Id),
                 p.ImageUrl ?? p.Images.OrderBy(i => i.Id).Select(i => i.Url).FirstOrDefault()
             ))
             .ToListAsync(ct);
+
+        var sale = flashSale.GetFlashSale();
+        if (sale.IsActive)
+        {
+            var per = sale.PerProductDiscountPercent;
+            items = items.Select(i =>
+            {
+                if (!per.TryGetValue(i.Slug, out var d) || d <= 0) return i;
+                var basePrice = i.OriginalPrice ?? i.Price;
+                var discounted = Math.Round(basePrice * (1 - d / 100m), 2);
+                return new ProductListItemDto(
+                    i.Id,
+                    i.Name,
+                    i.Slug,
+                    i.Category,
+                    i.Subcategory,
+                    discounted,
+                    basePrice,
+                    d,
+                    true,
+                    i.Rating,
+                    i.ReviewCount,
+                    i.ImageUrl
+                );
+            }).ToList();
+        }
 
         var response = new PagedResponse<ProductListItemDto>(items, page, pageSize, total);
         return response;
@@ -76,7 +103,8 @@ public class ProductService(AppDbContext db) : IProductService
             .Include(x => x.Reviews)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (p is null) return null;
-        return new ProductDetailDto(
+        var derivedRating = p.Reviews.Count > 0 ? Math.Round(p.Reviews.Select(r => (decimal)r.Rating).Average(), 2) : 0m;
+        var detail = new ProductDetailDto(
             p.Id.ToString(),
             p.Name,
             p.Slug,
@@ -86,7 +114,7 @@ public class ProductService(AppDbContext db) : IProductService
             p.OriginalPrice,
             p.DiscountPercent,
             false,
-            p.Rating,
+            derivedRating,
             p.Description,
             p.ImageUrl,
             p.Images.Select(i => i.Url).ToList(),
@@ -94,6 +122,20 @@ public class ProductService(AppDbContext db) : IProductService
             p.Options.Select(o => new ProductOptionDto(o.Id.ToString(), o.Name, o.Value)).ToList(),
             p.Reviews.Select(r => new ReviewDto(r.Id.ToString(), r.Author, r.Rating, r.Comment, r.Date.ToString("yyyy-MM-dd"))).ToList()
         );
+
+        var sale = flashSale.GetFlashSale();
+        if (!sale.IsActive || !sale.PerProductDiscountPercent.TryGetValue(detail.Slug, out var d) || d <= 0)
+            return detail;
+
+        var basePrice = detail.OriginalPrice ?? detail.Price;
+        var discounted = Math.Round(basePrice * (1 - d / 100m), 2);
+        return detail with
+        {
+            Price = discounted,
+            OriginalPrice = basePrice,
+            DiscountPercent = d,
+            IsFlashSale = true
+        };
     }
 
     public async Task<PagedResponse<ProductListItemDto>> GetProductsByCategoryAsync(string slug, int page, int pageSize, CancellationToken ct = default)
@@ -106,8 +148,37 @@ public class ProductService(AppDbContext db) : IProductService
             .Select(p => new ProductListItemDto(
                 p.Id.ToString(), p.Name, p.Slug, p.Category.Slug,
                 p.Subcategory != null ? p.Subcategory.Slug : null,
-                p.Price, p.OriginalPrice, p.DiscountPercent, false, p.Rating, p.ImageUrl ?? p.Images.OrderBy(i => i.Id).Select(i => i.Url).FirstOrDefault()))
+                p.Price, p.OriginalPrice, p.DiscountPercent, false,
+                db.Reviews.Where(r => r.ProductId == p.Id).Select(r => (decimal?)r.Rating).Average() ?? 0m,
+                db.Reviews.Count(r => r.ProductId == p.Id),
+                p.ImageUrl ?? p.Images.OrderBy(i => i.Id).Select(i => i.Url).FirstOrDefault()))
             .ToListAsync(ct);
+            
+        var sale = flashSale.GetFlashSale();
+        if (sale.IsActive)
+        {
+            var per = sale.PerProductDiscountPercent;
+            items = items.Select(i =>
+            {
+                if (!per.TryGetValue(i.Slug, out var d) || d <= 0) return i;
+                var basePrice = i.OriginalPrice ?? i.Price;
+                var discounted = Math.Round(basePrice * (1 - d / 100m), 2);
+                return new ProductListItemDto(
+                    i.Id,
+                    i.Name,
+                    i.Slug,
+                    i.Category,
+                    i.Subcategory,
+                    discounted,
+                    basePrice,
+                    d,
+                    true,
+                    i.Rating,
+                    i.ReviewCount,
+                    i.ImageUrl
+                );
+            }).ToList();
+        }
         return new PagedResponse<ProductListItemDto>(items, page, pageSize, total);
     }
 

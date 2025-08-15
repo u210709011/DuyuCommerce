@@ -6,12 +6,13 @@ import {
   Alert,
   Modal,
   View,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ImageViewer from 'react-native-image-zoom-viewer';
 
-import { getProductById } from '@/services/product';
+import { useProduct } from '@/hooks/useProduct';
 
 import { Product } from '@/types/product';
 
@@ -32,6 +33,7 @@ import { useWishlist } from '@/store/user';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
+  const productId = typeof id === 'string' ? id : null;
 
   const { top, bottom } = useSafeAreaInsets();
 
@@ -39,9 +41,8 @@ export default function ProductDetailScreen() {
 
   const { addToWishlist, removeFromWishlist, isInWishlist, loadWishlist } = useWishlist();
 
-  const [product, setProduct] = useState<Product | null>(null);
-
-  const [loading, setLoading] = useState(true);
+  // INFO: Use abstracted product fetching hook
+  const { product, loading } = useProduct(productId);
 
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
     {}
@@ -53,28 +54,10 @@ export default function ProductDetailScreen() {
   
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
-  // INFO: Load product detail and hydrate wishlist
+  // INFO: Load wishlist when component mounts
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        if (typeof id === 'string') {
-          const fetchedProduct = await getProductById(id);
-          setProduct(fetchedProduct || null);
-          if (fetchedProduct) {
-            setRelatedProducts(relatedProducts);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load product detail', e);
-        setProduct(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
     loadWishlist();
-  }, [id, loadWishlist]);
+  }, [loadWishlist]);
 
   // INFO: Capture variant selection
   const handleVariantSelect = (variantId: string, value: string) => {
@@ -135,9 +118,9 @@ export default function ProductDetailScreen() {
     return (
       <ThemedView style={styles.centered}>
         <Stack.Screen options={{ title: "Loading...", headerLeft: () => (
-          <Button onPress={() => router.back()} type="outline" style={{ paddingVertical: 6, paddingHorizontal: 10 }}>
-            <Icon name="arrow-back" size={22} />
-          </Button>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Icon name="arrow-back" size={24} style= {styles.backButton} />
+          </TouchableOpacity>
         ) }} />
         <ActivityIndicator size="large" />
       </ThemedView>
@@ -148,9 +131,9 @@ export default function ProductDetailScreen() {
     return (
       <ThemedView style={styles.centered}>
         <Stack.Screen options={{ title: "Product", headerLeft: () => (
-          <Button onPress={() => router.back()} type="outline" style={{ paddingVertical: 6, paddingHorizontal: 10 }}>
-            <Icon name="arrow-back" size={22} />
-          </Button>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Icon name="arrow-back" size={24} style= {styles.backButton} />
+          </TouchableOpacity>
         ) }} />
         <Text>Product not found.</Text>
       </ThemedView>
@@ -160,9 +143,9 @@ export default function ProductDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ title: product.name, headerLeft: () => (
-        <Button onPress={() => router.back()} type="outline" style={{ paddingVertical: 6, paddingHorizontal: 10 }}>
-          <Icon name="arrow-back" size={22} />
-        </Button>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Icon name="arrow-back" size={24} style={ styles.backButton }/>
+        </TouchableOpacity>
       ) }} />
       <ScrollView showsVerticalScrollIndicator={false}>
         <ProductGallery
@@ -245,6 +228,10 @@ export default function ProductDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backButton: {
+    padding: 4,
+    marginRight: 16,
   },
   centered: {
     flex: 1,

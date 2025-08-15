@@ -28,4 +28,6 @@ public record UpdateProductImagesRequest(
     IReadOnlyList<string>? Images
 );
 
-
+public record SyncWishlistRequest(List<string> ProductIds);
+public record CartItemEntry(string ProductId, int Quantity, string VariantKey);
+public record SyncCartRequest(List<CartItemEntry> Items);

@@ -10,35 +10,41 @@ import { Colors } from '@/constants/Colors';
 
 import { Product } from '@/types/product';
 
-import { getFlashSaleTimeRemaining } from '@/services/mockData'; // TODO: Remove this after backend is implemented
-
 interface FlashSaleSectionProps {
   products: Product[];
   onSeeAllPress?: () => void;
   onProductPress: (product: Product) => void;
+  title?: string;
+  endTimeIso?: string | null;
 }
 
 const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
   products,
   onSeeAllPress,
   onProductPress,
+  title = 'Flash Sale',
+  endTimeIso,
 }) => {
 
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   // INFO: Tick countdown every second; stop at zero
   useEffect(() => {
-    const timer = setInterval(() => {
-      const timeRemaining = getFlashSaleTimeRemaining();
-      setTimeLeft(timeRemaining);
-      
-      if (timeRemaining.hours === 0 && timeRemaining.minutes === 0 && timeRemaining.seconds === 0) {
-        clearInterval(timer);
-      }
-    }, 1000);
-
+    if (!endTimeIso) return;
+    const end = new Date(endTimeIso).getTime();
+    const tick = () => {
+      const now = Date.now();
+      const diffMs = Math.max(0, end - now);
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      setTimeLeft({ hours, minutes, seconds });
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [endTimeIso]);
  
   // INFO: Renders HH:MM:SS pill UI
   const renderCountdownTimer = () => (
@@ -64,13 +70,13 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <SectionHeader
-          title="Flash Sale"
+          title={title}
           showSeeAll={true}
           navigateTo="See the Deals"
           onSeeAllPress={onSeeAllPress}
           style={styles.sectionHeader}
         />
-        {renderCountdownTimer()}
+        {!!endTimeIso && renderCountdownTimer()}
       </View>
       
       <ScrollView

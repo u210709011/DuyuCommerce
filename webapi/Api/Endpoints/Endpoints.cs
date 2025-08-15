@@ -3,6 +3,7 @@ using WebApi.Application.DTOs;
 using WebApi.Shared.Responses;
 using WebApi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using WebApi.Domain.Entities;
 
 namespace WebApi.Api.Endpoints;
 
@@ -159,6 +160,65 @@ public static class Endpoints
 
         // API: GET FLASH SALE
         api.MapGet("/flash-sale", (IFlashSaleService flashSale) => Results.Ok(new ApiResponse<FlashSaleDto>(flashSale.GetFlashSale())));
+
+        // API: USER WISHLIST
+        api.MapGet("/users/{userId}/wishlist", async (AppDbContext db, string userId) =>
+        {
+            var ids = await db.UserWishlistItems
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => x.ProductId.ToString())
+                .ToListAsync();
+            return Results.Ok(new ApiResponse<WishlistDto>(new WishlistDto(ids)));
+        });
+
+        api.MapPut("/users/{userId}/wishlist", async (AppDbContext db, string userId, SyncWishlistRequest request) =>
+        {
+            await db.UserWishlistItems.Where(x => x.UserId == userId).ExecuteDeleteAsync();
+            if (request.ProductIds is not null && request.ProductIds.Count > 0)
+            {
+                var rows = request.ProductIds
+                    .Distinct()
+                    .Select(pid => new UserWishlistItem
+                    {
+                        UserId = userId,
+                        ProductId = Guid.Parse(pid),
+                        CreatedAt = DateTime.UtcNow
+                    });
+                await db.UserWishlistItems.AddRangeAsync(rows);
+                await db.SaveChangesAsync();
+            }
+            return Results.NoContent();
+        });
+
+        // API: USER CART
+        api.MapGet("/users/{userId}/cart", async (AppDbContext db, string userId) =>
+        {
+            var items = await db.UserCartItems
+                .Where(x => x.UserId == userId)
+                .Select(x => new CartItemDto(x.ProductId.ToString(), x.Quantity, x.VariantKey))
+                .ToListAsync();
+            return Results.Ok(new ApiResponse<CartDto>(new CartDto(items)));
+        });
+
+        api.MapPut("/users/{userId}/cart", async (AppDbContext db, string userId, SyncCartRequest request) =>
+        {
+            await db.UserCartItems.Where(x => x.UserId == userId).ExecuteDeleteAsync();
+            if (request.Items is not null && request.Items.Count > 0)
+            {
+                var rows = request.Items.Select(i => new UserCartItem
+                {
+                    UserId = userId,
+                    ProductId = Guid.Parse(i.ProductId),
+                    Quantity = Math.Max(1, i.Quantity),
+                    VariantKey = i.VariantKey ?? string.Empty,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                await db.UserCartItems.AddRangeAsync(rows);
+                await db.SaveChangesAsync();
+            }
+            return Results.NoContent();
+        });
 
         return app;
     }

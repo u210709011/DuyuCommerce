@@ -22,7 +22,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   onViewAllReviews,
 }) => {
   
-  const displayedReviews = reviews.slice(0, 1);
+  const displayedReviews = reviews.slice(0, 3);
 
   return (
     <View style={styles.container}>
@@ -30,7 +30,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
         <Text style={styles.sectionTitle}>Rating & Reviews</Text>
         <TouchableOpacity onPress={onViewAllReviews} style={styles.viewAllButton}>
           <Text style={styles.viewAllText}>View All Reviews</Text>
-          <Icon name="chevron-right" size={16} color={Colors.tabIconSelected} />
+          <Icon name="chevron-right" size={16} color={Colors.background} />
         </TouchableOpacity>
       </View>
 

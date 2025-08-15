@@ -54,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, style }) =>
       onPress={handlePress}
     >
       <View style={styles.imageContainer}>
-        <Image source={{ uri: product.images[0] }} style={styles.image} />
+        <Image source={{ uri: (product.images && product.images[0]) || (product as any).imageUrl || '' }} style={styles.image} />
         <TouchableOpacity style={styles.wishlistButton} onPress={handleWishlistPress}>
           <Icon 
             name={isInWishlist(product.id) ? "favorite" : "favorite-border"} 
@@ -89,13 +89,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, style }) =>
             <Text style={styles.price}>${product.price.toFixed(2)}</Text>
           )}
         </View>
-        {product.rating && (
-          <View style={styles.ratingContainer}>
-            <Icon name="star" size={12} color="#FFD700" />
-            <Text style={styles.rating}>{product.rating.toFixed(1)}</Text>
-            <Text style={styles.reviewCount}>({product.reviews?.length || 0})</Text>
-          </View>
-        )}
+        <View style={styles.ratingContainer}>
+          <Icon name="star" size={12} color="#FFD700" />
+          <Text style={styles.rating}>{(product.rating ?? 0).toFixed(1)}</Text>
+          <Text style={styles.reviewCount}>({product.reviews?.length ?? 0})</Text>
+        </View>
       </ThemedView>
     </TouchableOpacity>
   );

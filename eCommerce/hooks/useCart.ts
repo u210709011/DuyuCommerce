@@ -15,6 +15,7 @@ export const useCart = () => {
     updateQuantity,
     clearCart,
     loadCart,
+    setCartChangeCallback,
     getItemCount,
     getTotalPrice,
   } = useCartStore();
@@ -52,6 +53,8 @@ export const useCart = () => {
     removeItem,
     updateItemQuantity,
     clear,
+    loadCart,
+    setCartChangeCallback,
   
     getItemCount,
     getTotalPrice,

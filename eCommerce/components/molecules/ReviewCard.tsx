@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Review } from '@/types/product';
 
 import { Text } from '@/components/atoms/Text';
-import StarRating from './StarRating'; // This is an exception, molecules shouldn't import other molecules
+import StarRating from './StarRating'; // EXCEPTION: This is an exception, molecules shouldn't import other molecules
 
 import { Colors } from '@/constants/Colors';
 

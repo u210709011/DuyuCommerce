@@ -9,8 +9,8 @@ public class FlashSaleService : IFlashSaleService
         EndTime: DateTimeOffset.UtcNow.AddHours(24),
         PerProductDiscountPercent: new Dictionary<string, int>
         {
-            ["everyday-sneakers"] = 30,
-            ["leather-boots"] = 25
+            ["red-summer-dress"] = 30,
+            ["air-runner-sneaker"] = 25
         },
         Title: "Flash Sale - Limited Time!",
         Description: "Up to 30% off selected items"

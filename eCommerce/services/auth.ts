@@ -17,8 +17,8 @@ const mapFirebaseUser = (firebaseUser: WebUser | null): User | undefined => {
   if (!firebaseUser) return undefined;
   return {
     uid: firebaseUser.uid,
-    email: firebaseUser.email,
-    displayName: firebaseUser.displayName,
+    email: firebaseUser.email ?? undefined,
+    displayName: firebaseUser.displayName ?? undefined,
     photoURL: firebaseUser.photoURL ?? undefined,
   };
 };

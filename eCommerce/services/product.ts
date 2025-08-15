@@ -6,6 +6,36 @@ import { getMockCategories } from './mockData';
 
 import { loadItem, saveItem } from '@/utils/storage';
 
+// Flash sale DTOs
+type FlashSaleDto = {
+  isActive: boolean;
+  endTime: string; // ISO
+  perProductDiscountPercent: Record<string, number>; // key by slug
+  title: string;
+  description: string;
+};
+
+function applyFlashSaleToProduct(product: Product, sale: FlashSaleDto | null | undefined): Product {
+  if (!sale?.isActive) return product;
+  const percent = sale.perProductDiscountPercent?.[product.slug];
+  if (!percent || percent <= 0) return product;
+
+  const originalPrice = product.originalPrice ?? product.price;
+  const discounted = Number((originalPrice * (1 - percent / 100)).toFixed(2));
+  return {
+    ...product,
+    isFlashSale: true,
+    discount: percent,
+    originalPrice,
+    price: discounted,
+  };
+}
+
+function applyFlashSaleToProducts(products: Product[], sale: FlashSaleDto | null | undefined): Product[] {
+  if (!sale?.isActive) return products;
+  return products.map(p => applyFlashSaleToProduct(p, sale));
+}
+
 export interface ProductFilters {
   category?: string;
   subcategories?: string[];
@@ -69,8 +99,13 @@ export const getProductsPaged = async (
     page,
     pageSize,
   };
-  const data = await apiGet<PagedResponse<ProductListItemDto>>('/products', params);
-  return { items: data.items.map(mapListItem), page: data.page, pageSize: data.pageSize, total: data.total };
+  const [data, sale] = await Promise.all([
+    apiGet<PagedResponse<ProductListItemDto>>('/products', params),
+    getFlashSale().catch(() => null),
+  ]);
+  const mapped = data.items.map(mapListItem);
+  const annotated = applyFlashSaleToProducts(mapped, sale);
+  return { items: annotated, page: data.page, pageSize: data.pageSize, total: data.total };
 };
 
 // INFO: Convenience to load first page only
@@ -141,11 +176,14 @@ export const getProductById = async (id: string): Promise<Product | undefined> =
     options: { id: string; name: string; value: string }[];
     reviews: { id: string; author: string; rating: number; comment: string; date: string }[];
   };
-  const p = await apiGet<ProductDetailDto>(`/products/${id}`);
+  const [p, sale] = await Promise.all([
+    apiGet<ProductDetailDto>(`/products/${id}`),
+    getFlashSale().catch(() => null),
+  ]);
 
   // INFO: Return undefined if not found
   if (!p) return undefined;
-  return {
+  const base: Product = {
     id: p.id,
     slug: p.slug,
     name: p.name,
@@ -162,6 +200,7 @@ export const getProductById = async (id: string): Promise<Product | undefined> =
     reviews: p.reviews,
     rating: Number(p.rating),
   };
+  return applyFlashSaleToProduct(base, sale);
 };
 
 export const getProductsByCategory = async (categorySlug: string): Promise<Product[]> => {
@@ -210,6 +249,34 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
   return getProducts({ search: query });
 };
 
+// INFO: Get flash sale meta from backend or mock
+export const getFlashSale = async (): Promise<FlashSaleDto> => {
+  if (USE_MOCKS) {
+    return {
+      isActive: true,
+      endTime: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+      perProductDiscountPercent: {},
+      title: 'Flash Sale - Limited Time!',
+      description: 'Up to 30% off selected items',
+    };
+  }
+  return apiGet<FlashSaleDto>('/flash-sale');
+};
+
+// INFO: Convenience: compute flash sale products from current catalog using flash sale config
+export const getFlashSaleProducts = async (): Promise<{ title: string; endTime: string | null; products: Product[] }> => {
+  const [sale, all] = await Promise.all([getFlashSale(), getProducts({ sortBy: 'newest' })]);
+  if (!sale?.isActive) return { title: 'Flash Sale', endTime: null, products: [] };
+  const discounts = sale.perProductDiscountPercent || {};
+  const bySlug: Record<string, Product> = {};
+  all.forEach(p => { bySlug[p.slug] = p; });
+  const selected: Product[] = Object.keys(discounts)
+    .map(slug => bySlug[slug])
+    .filter(Boolean)
+    .map(p => applyFlashSaleToProduct(p, sale));
+  return { title: sale.title || 'Flash Sale', endTime: sale.endTime || null, products: selected };
+};
+
 export const ProductAPI = {
   getProducts: async (filters?: ProductFilters): Promise<Product[]> => {
     return getProducts(filters);
@@ -229,5 +296,8 @@ export const ProductAPI = {
   
   searchProducts: async (query: string): Promise<Product[]> => {
     return searchProducts(query);
-  }
+  },
+  getFlashSale: async () => getFlashSale(),
+  getFlashSaleProducts: async () => getFlashSaleProducts(),
+  
 };

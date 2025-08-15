@@ -10,6 +10,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WebApi.Domain.Entities.ProductVariant> ProductVariants => Set<WebApi.Domain.Entities.ProductVariant>();
     public DbSet<WebApi.Domain.Entities.ProductOption> ProductOptions => Set<WebApi.Domain.Entities.ProductOption>();
     public DbSet<WebApi.Domain.Entities.Review> Reviews => Set<WebApi.Domain.Entities.Review>();
+    public DbSet<WebApi.Domain.Entities.UserWishlistItem> UserWishlistItems => Set<WebApi.Domain.Entities.UserWishlistItem>();
+    public DbSet<WebApi.Domain.Entities.UserCartItem> UserCartItems => Set<WebApi.Domain.Entities.UserCartItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -13,7 +13,7 @@ interface UseProductsResult {
   loading: boolean;
   error: string | null;
   hasMore: boolean;
-  refresh: () => void;
+  refresh: () => Promise<void>;
   loadMore: () => void;
   setFilters: (updater: (prev: ProductFilters) => ProductFilters) => void;
   filters: ProductFilters;
@@ -58,9 +58,9 @@ export function useProducts(options?: UseProductsOptions): UseProductsResult {
     }
   }, [filters, loading, page, pageSize]);
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setPage(1);
-    fetchPage(true);
+    await fetchPage(true);
   }, [fetchPage]);
 
   const loadMore = useCallback(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useLayoutEffect, useCallback } from "react";
+import React, { useLayoutEffect } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -14,26 +14,45 @@ import FlashSaleSection from "@/components/organisms/FlashSaleSection";
 import CategoriesSection from "@/components/organisms/CategoriesSection";
 import ProductListSection from "@/components/organisms/ProductListSection";
 
-import { getProducts, getCategories } from "@/services/product";
-import { getMockPromoBanners,   } from "@/services/mockData"; // TODO: Remove mock data
+import { useProducts } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
+import { useFlashSale } from "@/hooks/useFlashSale";
+import { useRefreshableData } from "@/hooks/useRefreshableData";
 
-import { Category, Product } from "@/types/product";
+import { getMockPromoBanners } from "@/services/mockData"; // TODO: Remove mock data
+
+import { Product } from "@/types/product";
 
 import { Colors } from "@/constants/Colors";
 
 
 export default function HomeScreen() {
-  const [products, setProducts] = useState<Product[]>([]);
-
-  const [categories, setCategories] = useState<Category []>([]);
-
-  const [error, setError] = useState<string | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  
-  const [refreshing, setRefreshing] = useState(false);
-  
   const navigation = useNavigation();
+  
+  // INFO: Use abstracted hooks for data fetching
+  const { products, loading: productsLoading, refresh: refreshProducts } = useProducts({
+    initialFilters: { sortBy: 'newest' }
+  });
+  
+  const { categories, loading: categoriesLoading, refresh: refreshCategories } = useCategories();
+  
+  const { 
+    flashSaleProducts, 
+    flashSaleTitle, 
+    flashSaleEndTime, 
+    loading: flashSaleLoading, 
+    refresh: refreshFlashSale 
+  } = useFlashSale();
+  
+  // INFO: Coordinate refresh state across all data sources
+  const { refreshing, onRefresh } = useRefreshableData(
+    { refresh: refreshProducts },
+    { refresh: refreshCategories },
+    { refresh: refreshFlashSale }
+  );
+  
+  // INFO: Determine overall loading state
+  const loading = productsLoading && categoriesLoading && flashSaleLoading;
 
 
   // INFO: Configure header with embedded search
@@ -53,38 +72,6 @@ export default function HomeScreen() {
       ),
     });
   }, [navigation]);
-
-  // INFO: Fetch products/categories (optionally as refresh)
-  const fetchData = useCallback(async (opts?: { isRefresh?: boolean }) => {
-    const isRefresh = opts?.isRefresh === true;
-    if (!isRefresh) setLoading(true);
-    try {
-      const [fetchedProducts, fetchedCategories] = await Promise.all([
-        getProducts({ sortBy: 'newest' }),
-        getCategories()
-      ]);
-      setProducts(fetchedProducts);
-      setCategories(fetchedCategories);
-      setError(null);
-    } catch (e: any) {
-      console.warn('Home fetch error:', e?.message || e);
-      setError(e?.message || 'Failed to load');
-    } finally {
-      if (isRefresh) setRefreshing(false);
-      if (!isRefresh) setLoading(false);
-    }
-  }, []);
-
-  // INFO: Run initial fetch
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // INFO: Pull-to-refresh handler
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchData({ isRefresh: true });
-  }, [fetchData]);
 
   const promoBanners = getMockPromoBanners();
 
@@ -161,7 +148,9 @@ export default function HomeScreen() {
         />
 
         <FlashSaleSection
-          products={[]}
+          title={flashSaleTitle}
+          endTimeIso={flashSaleEndTime}
+          products={flashSaleProducts}
           onProductPress={handleProductPress}
           onSeeAllPress={() => handleSeeAllPress("flash-sale")}
         />

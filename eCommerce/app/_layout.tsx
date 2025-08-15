@@ -50,7 +50,6 @@ export default function RootLayout() {
   
   const pathname = usePathname();
 
-  // Initial blocking health check for backend
   const checkBackend = async () => {
     if (DISABLE_BACKEND_GUARD) { // INFO: Skip health gate in debug
       setBackendReady(true);
@@ -77,7 +76,6 @@ export default function RootLayout() {
     }
   };
 
-  // Periodic non-blocking connectivity ping
   const pingBackend = async () => {
     if (DISABLE_BACKEND_GUARD) return; // INFO: Skip periodic pings in debug
     setPinging(true);
@@ -99,21 +97,18 @@ export default function RootLayout() {
   };
 
 
-  // Gate UI on fonts + health check
   useEffect(() => {
     if (loaded) {
       checkBackend();
     }
   }, [loaded]);
 
-  // Hide splash after first health check completes
   useEffect(() => {
     if (loaded && !checkingBackend) {
       SplashScreen.hideAsync();
     }
   }, [loaded, checkingBackend]);
 
-  // Background/interval pings once app is ready
   useEffect(() => {
     if (!backendReady || DISABLE_BACKEND_GUARD) return;
     const sub = AppState.addEventListener('change', (state) => {
@@ -130,7 +125,6 @@ export default function RootLayout() {
     };
   }, [backendReady]);
 
-  // Ping on navigation for up-to-date status
   useEffect(() => {
     if (!backendReady || DISABLE_BACKEND_GUARD) return;
     pingBackend();

@@ -105,8 +105,8 @@ export const mockCategories = [
 ];
 
 // SEARCH DATA
-export const mockSearchHistory = ['Socks', 'Red Dress', 'Sunglasses', 'Mustard Pants', '80-s Skirt'];
-export const mockRecommendations = ['Skirt', 'Accessories', 'Black T-Shirt', 'Jeans', 'White Shoes'];
+export const mockSearchHistory = [];
+export const mockRecommendations = [];
 
 // HIERARCHICAL CATEGORIES FOR FILTERS
 export const mockFilterCategories = [

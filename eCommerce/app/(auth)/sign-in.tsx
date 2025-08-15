@@ -14,7 +14,7 @@ export default function SignInScreen() {
 
   return (
     <AuthLayout title="Welcome Back!" subtitle="Sign in to continue">
-      <Stack.Screen options={{ title: "Sign In"}} />
+      <Stack.Screen options={{ title: "Sign In"}}/>
       <LoginForm />
       <ThemedView style={styles.signupContainer}>
         <Text>Don't have an account? </Text>

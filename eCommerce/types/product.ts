@@ -21,6 +21,7 @@ export interface Product {
   options: ProductOption[];
   reviews: Review[];
   rating: number;
+  reviewCount?: number;
 }
 
 export interface ProductVariant {

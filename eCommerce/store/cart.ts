@@ -6,12 +6,14 @@ import { CartStorage } from '@/utils/storage';
 
 interface CartStore extends Cart {
   isLoading: boolean;
+  onCartChange?: (items: CartItem[]) => void;
   
   addToCart: (data: AddToCartData) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   loadCart: () => Promise<void>;
+  setCartChangeCallback: (callback: (items: CartItem[]) => void) => void;
   
   getItemCount: () => number;
   getTotalPrice: () => number;
@@ -32,6 +34,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   totalItems: 0,
   totalPrice: 0,
   isLoading: false,
+  onCartChange: undefined,
 
   // INFO: Add or increment an item
   addToCart: (data: AddToCartData) => {
@@ -68,6 +71,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     
     set(newCart);
     CartStorage.saveCart(newCart);
+    get().onCartChange?.(newCart.items);
   },
 
   // INFO: Remove item and persist
@@ -83,6 +87,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     
     set(newCart);
     CartStorage.saveCart(newCart);
+    get().onCartChange?.(newCart.items);
   },
 
   // INFO: Update item quantity; remove if <= 0
@@ -106,6 +111,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     
     set(newCart);
     CartStorage.saveCart(newCart);
+    get().onCartChange?.(newCart.items);
   },
 
   // INFO: Clear all cart contents
@@ -118,6 +124,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     
     set(emptyCart);
     CartStorage.clearCart();
+    get().onCartChange?.([]);
   },
 
   // INFO: Load cart snapshot from AsyncStorage
@@ -151,5 +158,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
   getTotalPrice: () => {
     const state = get();
     return state.totalPrice;
+  },
+
+  // INFO: Set callback for cart changes
+  setCartChangeCallback: (callback: (items: CartItem[]) => void) => {
+    set({ onCartChange: callback });
   },
 }));

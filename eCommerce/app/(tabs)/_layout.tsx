@@ -12,10 +12,13 @@ export default function TabLayout() {
 
 
   return (
+
+
     <Tabs
       screenOptions={{
         headerShown: true,
         headerShadowVisible: false,
+          tabBarLabel: () => null,
         tabBarButton: (props) => {
           const viewRef = props.ref as React.Ref<View>;
           return (

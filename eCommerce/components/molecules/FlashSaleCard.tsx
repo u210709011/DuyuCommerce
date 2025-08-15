@@ -9,7 +9,6 @@ import { Colors } from '@/constants/Colors';
 
 import { Product } from '@/types/product';
 
-import { isFlashSaleActive, getFlashSaleDiscount } from '@/services/mockData'; // TODO: Remove this after backend is implemented
 
 interface FlashSaleCardProps {
   product: Product;
@@ -20,9 +19,9 @@ const FlashSaleCard: React.FC<FlashSaleCardProps> = ({
   product,
   onPress,
 }) => {
-  const isFlashSale = isFlashSaleActive(product);
+  const isFlashSale = product.isFlashSale;
 
-  const flashDiscount = getFlashSaleDiscount(product);
+  const flashDiscount = product.discount ?? 0;
 
   const originalPrice = product.originalPrice || product.price;
 
